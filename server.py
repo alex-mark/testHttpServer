@@ -3,49 +3,16 @@ import mimetypes
 import os
 import socket
 import typing
-
 from threading import Thread
 from queue import Queue, Empty
 from typing import Callable, List, Tuple
+
 from request import Request
 from response import Response
 
 LOGGER = logging.getLogger(__name__)
 
 HandlerT = Callable[[Request], Response]
-
-
-def serve_file(sock: socket.socket, path: str) -> None:
-    """Given a socket and the relative path to a file (relative to
-    SERVER_SOCK), send that file to the socket if it exists.  If the
-    file doesn't exist, send a "404 Not Found" response.
-    """
-    if path == "/":
-        path = "/index.html"
-
-    abspath = os.path.normpath(os.path.join(SERVER_ROOT, path.lstrip("/")))
-    if not abspath.startswith(SERVER_ROOT):
-        response = Response(status="404 Not Found", content="Not Found")
-        response.send(sock)
-        return
-
-    try:
-        with open(abspath, "rb") as f:
-            content_type, encoding = mimetypes.guess_type(abspath)
-            if content_type is None:
-                content_type = "application/octet-stream"
-
-            if encoding is not None:
-                content_type += f"; charset={encoding}"
-
-            response = Response(status="200 OK", body=f)
-            response.headers.add("content-type", content_type)
-            response.send(sock)
-            return
-    except FileNotFoundError:
-        response = Response(status="404 Not Found", content="Not Found")
-        response.send(sock)
-        return
 
 
 class HTTPWorker(Thread):
@@ -118,12 +85,12 @@ class HTTPWorker(Thread):
 
 class HTTPServer:
     def __init__(self, host="127.0.0.1", port=9000, worker_count=16) -> None:
-        self.handlers = []
+        self.handlers: List[Tuple[str, HandlerT]] = []
         self.host = host
         self.port = port
         self.worker_count = worker_count
         self.worker_backlog = worker_count * 8
-        self.connection_queue = Queue(self.worker_backlog)
+        self.connection_queue: Queue = Queue(self.worker_backlog)
 
     def serve_forever(self) -> None:
         workers = []
