@@ -7,8 +7,8 @@ from threading import Thread
 from queue import Queue, Empty
 from typing import Callable, List, Tuple
 
-from request import Request
-from response import Response
+from .request import Request
+from .response import Response
 
 LOGGER = logging.getLogger(__name__)
 
