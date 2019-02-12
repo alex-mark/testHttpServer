@@ -10,6 +10,7 @@ from typing import Callable, List, Tuple
 from .request import Request
 from .response import Response
 
+
 LOGGER = logging.getLogger(__name__)
 
 HandlerT = Callable[[Request], Response]
@@ -163,26 +164,3 @@ def serve_static(server_root: str) -> HandlerT:
             return Response(status="404 Not Found", content="Not Found")
 
     return handler
-
-
-def wrap_auth(handler: HandlerT) -> HandlerT:
-    def auth_handler(request: Request) -> Response:
-        authorization = request.headers.get("authorization", "")
-        if (
-            authorization.startswith("Bearer")
-            and authorization[len("Bearer ") :] == "opensesame"
-        ):
-            return handler(request)
-        return Response(status="403 Forbidden", content="Forbidden!")
-
-    return auth_handler
-
-
-def app(request: Request) -> Response:
-    return Response(status="200 OK", content="Hello!")
-
-
-server = HTTPServer()
-server.mount("/static", serve_static("www"))
-server.mount("", wrap_auth(app))
-server.serve_forever()
